@@ -13,6 +13,8 @@ COPY --from=builder /out/ses-sender /app/ses-sender
 # 默认配置烤进镜像（yaml 即默认配置）：无挂载无 env 时开箱即用；
 # compose 挂载 ./backend/config 会覆盖它；生产密钥经 env 注入（env > yaml）
 COPY config/config.example.yaml /app/config/config.yaml
+# goose 迁移目录（启动引导三态用；全新库一步建 11 表）
+COPY migrations /app/migrations
 EXPOSE 8000
 # 健康检查由 taskdef healthCheck 提供（ses-sender healthcheck 子命令），不在镜像层重复定义
 ENTRYPOINT ["/app/ses-sender"]

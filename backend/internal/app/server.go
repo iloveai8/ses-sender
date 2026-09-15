@@ -1,5 +1,4 @@
 // Package app 负责 HTTP 装配：路由注册（按 Python 版 include 顺序）、中间件链、优雅停机。
-// 骨架期仅含健康端点；各域路由随 P4-P8 接入。
 package app
 
 import (
@@ -15,31 +14,66 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"ses-sender/internal/account"
+	"ses-sender/internal/httpx"
 	"ses-sender/internal/platform/config"
+	"ses-sender/internal/platform/database"
 )
 
-// Run 组合根入口：按配置装配组件并启动。
-// 骨架期仅启动 HTTP；引擎/事件源/调度器随域推进在 all|worker 模式下接入。
+// Run 组合根入口：装配依赖并启动（引擎/事件源/调度器随域推进在 all|worker 模式接入）
 func Run(cfg *config.Config) error {
+	// ── 数据库（all/api 模式必需）──
+	db, err := database.Open(cfg)
+	if err != nil {
+		return fmt.Errorf("数据库不可用: %w", err)
+	}
+	defer db.Close()
+	if err := database.Bootstrap(db, "migrations"); err != nil {
+		slog.Warn("迁移引导未完成（不阻塞启动，与 Python 版行为一致）", "err", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := account.EnsureDefaultAdmin(ctx, db); err != nil {
+		slog.Warn("默认管理员种子失败", "err", err)
+	}
+	cancel()
+
+	// ── account 域装配 ──
+	store := account.NewStore(db)
+	tokens := account.NewTokenSigner(cfg.SecretKey)
+	rl := account.NewRateLimiter()
+	acct := account.NewHandler(store, tokens, rl)
+
+	// ── HTTP ──
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	// 健康端点（契约锚定：与 Python 版逐字节一致，GET / 探活 + healthcheck 子命令依赖）
+	// 健康端点（契约锚定：与 Python 版逐字节一致）
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "SES Sender API is running"})
 	})
 
-	addr := fmt.Sprintf(":%d", cfg.Server.Port)
+	// 未匹配路由 → 404 JSON（gin 默认是 text/plain，契约要求 {"detail":"Not Found"}）
+	r.NoRoute(func(c *gin.Context) {
+		c.JSON(httpx.ErrNotFound().Status, gin.H{"detail": httpx.ErrNotFound().Detail})
+	})
+
+	// ── account 路由（Python include 顺序第一位）──
+	r.POST("/auth/login", acct.Login)
+	auth := r.Group("", acct.Authenticate())
+	{
+		auth.GET("/auth/me", acct.Me)
+	}
+
 	srv := &http.Server{
-		Addr:              addr,
+		Addr:              fmt.Sprintf(":%d", cfg.Server.Port),
 		Handler:           r,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		slog.Info("http listening", "addr", addr, "mode", cfg.Server.Mode)
+		slog.Info("http listening", "addr", srv.Addr, "mode", cfg.Server.Mode)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}

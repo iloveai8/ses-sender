@@ -138,12 +138,22 @@ func Load(path string) (*Config, error) {
 //	与 user:pass@tcp(host:port)/db（Go 原生）；统一补 utf8mb4/parseTime/UTC。
 func (d Database) DSN() string {
 	u := d.URL
-	if strings.HasPrefix(u, "mysql+pymysql://") {
-		u = strings.TrimPrefix(u, "mysql+pymysql://")
+	u = strings.TrimPrefix(u, "mysql+pymysql://")
+	u = strings.TrimPrefix(u, "mysql://")
+	// pymysql 形态的 host:port → go-sql-driver 的 tcp(host:port)（已是 tcp()/无端口的跳过）
+	if i := strings.IndexByte(u, '@'); i >= 0 {
+		rest := u[i+1:]
+		host := rest
+		if j := strings.IndexAny(rest, "/?"); j >= 0 {
+			host = rest[:j]
+		}
+		if host != "" && !strings.HasPrefix(host, "tcp(") && strings.Contains(host, ":") {
+			u = u[:i+1] + "tcp(" + host + ")" + rest[len(host):]
+		}
 	}
-	if sep := strings.IndexAny(u, "?"); sep >= 0 { // 已带参数：仅追加必需项
-		u = u + "&charset=utf8mb4&parseTime=true&loc=UTC"
-		return u
+	sep := "?"
+	if strings.Contains(u, "?") {
+		sep = "&"
 	}
-	return u + "?charset=utf8mb4&parseTime=true&loc=UTC"
+	return u + sep + "charset=utf8mb4&parseTime=true&loc=UTC"
 }
