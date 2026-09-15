@@ -1,0 +1,88 @@
+# 对拍语料（P4 account 域起步；随域推进扩充）
+# 用法见 tools/harness/main.go：record 录 Python 金标准 → diff 打 Go 对比
+# auth: 空=匿名 | admin/user=自动登录取 token（种子账号见 defaults）
+# skip: diff 时跳过（录制后不可重复执行的写操作）
+
+defaults:
+  admin_user: admin
+  admin_pass: admin123
+  user_name: user1
+  user_pass: user112345
+
+cases:
+  # ── 健康与基础 ──
+  - name: health
+    method: GET
+    path: /
+
+  # ── 登录（A1/A2）──
+  - name: login-missing-password
+    method: POST
+    path: /auth/login
+    body: { username: admin }
+  - name: login-wrong-password
+    method: POST
+    path: /auth/login
+    body: { username: admin, password: wrong-pass }
+  - name: login-disabled-unknown-user
+    method: POST
+    path: /auth/login
+    body: { username: nosuchuser, password: whatever123 }
+  - name: login-ok-admin
+    method: POST
+    path: /auth/login
+    body: { username: admin, password: admin123 }
+
+  # ── 鉴权中间件矩阵 ──
+  - name: me-no-token
+    method: GET
+    path: /auth/me
+  - name: me-bad-token
+    method: GET
+    path: /auth/me
+    headers: { Authorization: "Bearer bad.token.here" }
+  - name: me-ok-admin
+    method: GET
+    path: /auth/me
+    auth: admin
+
+  # ── 用户管理（A3：admin 专属 + 403/400/404 分支）──
+  - name: admin-users-list
+    method: GET
+    path: /admin/users
+    auth: admin
+  - name: admin-users-create-ok
+    method: POST
+    path: /admin/users
+    auth: admin
+    body: { username: corpususer1, display_name: 语料用户, password: pass123456, email: corpus1@harness.local }
+    skip: true   # 写操作：录一次即锁定，diff 跳过（幂等性由集成测试覆盖）
+  - name: admin-users-create-noauth
+    method: POST
+    path: /admin/users
+    body: { username: x1, display_name: x, password: x123456, email: x@x.com }
+  - name: admin-users-create-forbidden
+    method: POST
+    path: /admin/users
+    auth: admin   # user 角色未播种前先以 admin 验证 422 负例；P4 扩 user 角色后改 auth: user
+    body: {}      # 空体 → 422 pydantic 形状锚定
+  - name: admin-users-update-notfound
+    method: PUT
+    path: /admin/users/999999
+    auth: admin
+    body: { display_name: 不存在的用户 }
+
+  # ── 个人设置（A4）──
+  - name: unsub-defaults
+    method: GET
+    path: /user/unsub-defaults
+    auth: admin
+  - name: unsub-config-empty
+    method: GET
+    path: /user/unsub-config
+    auth: admin
+  - name: contact-email-empty-reject
+    method: PUT
+    path: /user/contact-email
+    auth: admin
+    body: { contact_email: "" }

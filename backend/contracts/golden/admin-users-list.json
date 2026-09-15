@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "[{\"id\":1,\"username\":\"admin\",\"display_name\":\"管理员\",\"sender_name\":null,\"email\":\"\",\"contact_email\":null,\"is_admin\":true,\"is_active\":true,\"daily_send_limit\":1000}]"
+}

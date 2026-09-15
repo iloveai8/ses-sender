@@ -1,0 +1,5 @@
+{
+  "status": 400,
+  "content_type": "application/json",
+  "body": "{\"detail\":\"收件邮箱不能为空\"}"
+}
