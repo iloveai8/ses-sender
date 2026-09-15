@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 )
 
@@ -72,6 +73,91 @@ func (s *Store) GetByID(ctx context.Context, id int) (*User, error) {
 		return nil, nil
 	}
 	return u, err
+}
+
+// List 全量用户（按 id 升序，与 Python 版一致）
+func (s *Store) List(ctx context.Context) ([]*User, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT "+userCols+" FROM users ORDER BY id")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+// CreateParams 建用户参数（必填 username/display_name/password/email；其余有默认）
+type CreateParams struct {
+	Username, DisplayName, Password, Email string
+	ContactEmail                           *string
+	IsAdmin                                bool
+	DailySendLimit                         int
+	SenderName                             *string
+}
+
+// Create 建用户；用户名重复返回 dup=true（调用方落 400 用户名已存在）
+func (s *Store) Create(ctx context.Context, p CreateParams) (*User, bool, error) {
+	hash, err := HashPassword(p.Password)
+	if err != nil {
+		return nil, false, err
+	}
+	res, err := s.db.ExecContext(ctx,
+		`INSERT INTO users (username, display_name, hashed_password, email, contact_email, is_admin, is_active, daily_send_limit, sender_name, created_at)
+		 VALUES (?,?,?,?,?,?,TRUE,?,?,?)`,
+		p.Username, p.DisplayName, hash, p.Email, p.ContactEmail, p.IsAdmin, p.DailySendLimit, p.SenderName, time.Now().UTC())
+	if err != nil {
+		if isDuplicateKey(err) {
+			return nil, true, nil
+		}
+		return nil, false, err
+	}
+	id, _ := res.LastInsertId()
+	u, err := s.GetByID(ctx, int(id))
+	return u, false, err
+}
+
+// UpdateProfile 按需更新（nil 字段跳过——Python UserUpdate 全可选语义）
+func (s *Store) UpdateProfile(ctx context.Context, id int, fields map[string]any) error {
+	if len(fields) == 0 {
+		return nil
+	}
+	set := make([]string, 0, len(fields))
+	args := make([]any, 0, len(fields)+1)
+	for k, v := range fields {
+		set = append(set, k+" = ?")
+		args = append(args, v)
+	}
+	args = append(args, id)
+	_, err := s.db.ExecContext(ctx, "UPDATE users SET "+strings.Join(set, ", ")+" WHERE id = ?", args...)
+	return err
+}
+
+// GetUnsubConfig 用户退订页配置原始 JSON（空/损坏由调用方兜 {}）
+func (s *Store) GetUnsubConfig(ctx context.Context, userID int) (string, error) {
+	var cfg sql.NullString
+	err := s.db.QueryRowContext(ctx, "SELECT unsub_config FROM users WHERE id = ?", userID).Scan(&cfg)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return cfg.String, err
+}
+
+// SetUnsubConfig 原样存 JSON（Python 语义：任意 dict 原文保存）
+func (s *Store) SetUnsubConfig(ctx context.Context, userID int, raw []byte) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE users SET unsub_config = ? WHERE id = ?", string(raw), userID)
+	return err
+}
+
+// isDuplicateKey MySQL 1062 唯一键冲突
+func isDuplicateKey(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "Error 1062")
 }
 
 // EnsureDefaultAdmin 启动种子：无 admin 用户则创建（admin/admin123，与 Python 版一致）。

@@ -64,6 +64,19 @@ func Run(cfg *config.Config) error {
 	{
 		auth.GET("/auth/me", acct.Me)
 	}
+	admin := r.Group("", acct.Authenticate(), acct.RequireAdmin())
+	{
+		admin.GET("/admin/users", acct.AdminUsersList)
+		admin.POST("/admin/users", acct.AdminUsersCreate)
+		admin.PUT("/admin/users/:user_id", acct.AdminUsersUpdate)
+	}
+	user := r.Group("", acct.Authenticate())
+	{
+		user.GET("/user/unsub-config", acct.UnsubConfigGet)
+		user.PUT("/user/unsub-config", acct.UnsubConfigPut)
+		user.GET("/user/unsub-defaults", acct.UnsubDefaults)
+		user.PUT("/user/contact-email", acct.ContactEmailPut)
+	}
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Server.Port),

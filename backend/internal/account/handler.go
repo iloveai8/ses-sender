@@ -177,3 +177,254 @@ func lockMessage(remainSeconds int) string {
 func writeErr(c *gin.Context, e *httpx.Error) {
 	c.JSON(e.Status, gin.H{"detail": e.Detail})
 }
+
+// ── 用户管理（admin 专属）──────────────────────────────
+
+// AdminUsersList GET /admin/users
+func (h *Handler) AdminUsersList(c *gin.Context) {
+	users, err := h.store.List(c.Request.Context())
+	if err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	out := make([]UserOut, 0, len(users)) // 空列表序列化为 []（Python 行为），不用 nil
+	for _, u := range users {
+		out = append(out, u.Out())
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// AdminUsersCreate POST /admin/users（422 按 UserCreate 字段定义顺序报全部缺失——pydantic 行为）
+func (h *Handler) AdminUsersCreate(c *gin.Context) {
+	raw, _ := io.ReadAll(c.Request.Body)
+	var body map[string]any
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &body); err != nil {
+			body = map[string]any{}
+		}
+	}
+	var echo any
+	if len(raw) > 0 && json.Valid(raw) {
+		echo = json.RawMessage(raw)
+	}
+	var issues []httpx.ValidationIssue
+	for _, f := range []string{"username", "display_name", "password", "email"} {
+		if _, ok := body[f]; !ok {
+			issues = append(issues, httpx.ValidationIssue{
+				Type: "missing", Loc: []string{"body", f}, Msg: "Field required", Input: echo,
+			})
+		}
+	}
+	if len(issues) > 0 {
+		writeErr(c, &httpx.Error{Status: 422, Detail: issues})
+		return
+	}
+
+	p := CreateParams{
+		Username:       str(body["username"]),
+		DisplayName:    str(body["display_name"]),
+		Password:       str(body["password"]),
+		Email:          str(body["email"]),
+		ContactEmail:   optStr(body["contact_email"]),
+		IsAdmin:        boolOr(body["is_admin"], false),
+		DailySendLimit: intOr(body["daily_send_limit"], 1000),
+		SenderName:     optStr(body["sender_name"]),
+	}
+	if p.SenderName != nil && len(*p.SenderName) > 255 {
+		writeErr(c, &httpx.Error{Status: 422, Detail: []httpx.ValidationIssue{{
+			Type: "string_too_long", Loc: []string{"body", "sender_name"},
+			Msg: "String should have at most 255 characters", Input: echo,
+		}}})
+		return
+	}
+	user, dup, err := h.store.Create(c.Request.Context(), p)
+	if err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	if dup {
+		writeErr(c, httpx.New(http.StatusBadRequest, "用户名已存在"))
+		return
+	}
+	c.JSON(http.StatusOK, user.Out())
+}
+
+// AdminUsersUpdate PUT /admin/users/:user_id（全字段可选；不存在 404 用户不存在）
+func (h *Handler) AdminUsersUpdate(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("user_id"))
+	if err != nil {
+		writeErr(c, httpx.ErrNotFound())
+		return
+	}
+	user, err := h.store.GetByID(c.Request.Context(), id)
+	if err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	if user == nil {
+		writeErr(c, httpx.New(http.StatusNotFound, "用户不存在"))
+		return
+	}
+	var body map[string]any
+	if err := c.ShouldBindJSON(&body); err != nil {
+		body = map[string]any{}
+	}
+	fields := map[string]any{}
+	if v, ok := body["display_name"]; ok {
+		fields["display_name"] = str(v)
+	}
+	if v, ok := body["email"]; ok {
+		fields["email"] = str(v)
+	}
+	if v, ok := body["contact_email"]; ok {
+		fields["contact_email"] = str(v)
+	}
+	if v, ok := body["password"]; ok && str(v) != "" {
+		hash, err := HashPassword(str(v))
+		if err == nil {
+			fields["hashed_password"] = hash
+		}
+	}
+	if v, ok := body["is_active"]; ok {
+		fields["is_active"] = boolOr(v, true)
+	}
+	if v, ok := body["daily_send_limit"]; ok {
+		fields["daily_send_limit"] = intOr(v, 1000)
+	}
+	if v, ok := body["sender_name"]; ok {
+		s := str(v)
+		fields["sender_name"] = &s
+	}
+	if err := h.store.UpdateProfile(c.Request.Context(), id, fields); err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	updated, _ := h.store.GetByID(c.Request.Context(), id)
+	c.JSON(http.StatusOK, updated.Out())
+}
+
+// ── 个人设置 ─────────────────────────────────────────
+
+// unsubReason 退订原因项（字段顺序=契约 value,label）
+type unsubReason struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+// unsubPageConfig 退订页配置（字段顺序=golden 契约，禁改）
+type unsubPageConfig struct {
+	Title      string        `json:"title"`
+	Subtitle   string        `json:"subtitle"`
+	Reasons    []unsubReason `json:"reasons"`
+	Success    string        `json:"success"`
+	Logo       string        `json:"logo"`
+	Color      string        `json:"color"`
+	ButtonText string        `json:"buttonText"`
+}
+
+// defaultUnsubConfig 系统默认（字面值=golden 锚定，与 Python settings 默认一致）
+func defaultUnsubConfig() unsubPageConfig {
+	return unsubPageConfig{
+		Title:    "退订确认",
+		Subtitle: "我们很遗憾看到您离开。请告诉我们退订原因，帮助我们改进服务。",
+		Reasons: []unsubReason{
+			{"too_frequent", "收到邮件太频繁"},
+			{"not_relevant", "内容与我无关"},
+			{"never_subscribed", "我从未订阅过"},
+			{"prefer_other", "我更喜欢其他渠道获取信息"},
+			{"other", "其他原因"},
+		},
+		Success:    "退订成功",
+		Logo:       "",
+		Color:      "#667eea",
+		ButtonText: "确认退订",
+	}
+}
+
+// UnsubDefaults GET /user/unsub-defaults：默认配置 + 当前用户自定义覆盖（键级合并）
+func (h *Handler) UnsubDefaults(c *gin.Context) {
+	cfg := defaultUnsubConfig()
+	if raw, _ := h.store.GetUnsubConfig(c.Request.Context(), CurrentUser(c).ID); raw != "" {
+		var m map[string]json.RawMessage
+		if json.Unmarshal([]byte(raw), &m) == nil {
+			json.Unmarshal(m["title"], &cfg.Title)
+			json.Unmarshal(m["subtitle"], &cfg.Subtitle)
+			json.Unmarshal(m["reasons"], &cfg.Reasons)
+			json.Unmarshal(m["success"], &cfg.Success)
+			json.Unmarshal(m["logo"], &cfg.Logo)
+			json.Unmarshal(m["color"], &cfg.Color)
+			json.Unmarshal(m["buttonText"], &cfg.ButtonText)
+		}
+	}
+	c.JSON(http.StatusOK, cfg)
+}
+
+// UnsubConfigGet GET /user/unsub-config：原始 JSON 透传；空/损坏兜 {}
+func (h *Handler) UnsubConfigGet(c *gin.Context) {
+	raw, _ := h.store.GetUnsubConfig(c.Request.Context(), CurrentUser(c).ID)
+	out := []byte(raw)
+	if json.Valid(out) == false || len(out) == 0 {
+		out = []byte("{}")
+	}
+	c.Data(http.StatusOK, "application/json", out)
+}
+
+// UnsubConfigPut PUT /user/unsub-config：任意 JSON 原样保存
+func (h *Handler) UnsubConfigPut(c *gin.Context) {
+	raw, _ := io.ReadAll(c.Request.Body)
+	if !json.Valid(raw) {
+		raw = []byte("{}")
+	}
+	if err := h.store.SetUnsubConfig(c.Request.Context(), CurrentUser(c).ID, raw); err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "退订页面配置已保存"})
+}
+
+// ContactEmailPut PUT /user/contact-email
+func (h *Handler) ContactEmailPut(c *gin.Context) {
+	var body map[string]any
+	_ = c.ShouldBindJSON(&body)
+	email := str(body["contact_email"])
+	if email == "" {
+		writeErr(c, httpx.New(http.StatusBadRequest, "收件邮箱不能为空"))
+		return
+	}
+	if err := h.store.UpdateProfile(c.Request.Context(), CurrentUser(c).ID, map[string]any{"contact_email": email}); err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "收件邮箱已更新"})
+}
+
+// ── JSON 取值小工具 ──────────────────────────────────
+
+func str(v any) string {
+	s, _ := v.(string)
+	return s
+}
+
+func optStr(v any) *string {
+	if v == nil {
+		return nil
+	}
+	if s, ok := v.(string); ok {
+		return &s
+	}
+	return nil
+}
+
+func boolOr(v any, def bool) bool {
+	if b, ok := v.(bool); ok {
+		return b
+	}
+	return def
+}
+
+func intOr(v any, def int) int {
+	if f, ok := v.(float64); ok {
+		return int(f)
+	}
+	return def
+}
