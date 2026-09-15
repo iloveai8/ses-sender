@@ -1,0 +1,7 @@
+bin/
+*.exe
+.env
+# 环境配置文件可能含本地密钥，一律不入库（仅模板 config.example.yaml 例外）
+config.yaml
+config.*.yaml
+!config.example.yaml

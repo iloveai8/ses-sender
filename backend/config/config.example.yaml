@@ -1,0 +1,40 @@
+# ses-sender 配置模板（复制为同目录 config.yaml 使用；config*.yaml 已 gitignore，真实值不进 git）
+# 合并优先级：命令行 flag > 环境变量 > config.yaml > 内置默认值
+# 环境变量名见 internal/platform/config/config.go（沿用 Python 版变量名，生产 SSM 注入零改动）
+# ★ 密钥（secret_key / database.url）生产环境一律走环境变量注入，勿写在 yaml 里
+#
+# 多环境部署：按 APP_ENV 环境变量自动选文件——APP_ENV=test 加载 config.test.yaml，
+# 未命中回落 config.yaml，再未命中仅用环境变量+默认值。即：
+#   本地      config.yaml（默认）
+#   test 环境 APP_ENV=test  + config/config.test.yaml
+#   生产      通常不需要文件（taskdef/SSM 环境变量注入即可），需要时 APP_ENV=prod + config.prod.yaml
+
+server:
+    port: 8000          # 容器恒 8000；本地开发可改
+    mode: all           # all | api | worker
+
+database:
+    url: mysql+pymysql://ses_sender:ses_sender_123@localhost:3306/ses_sender
+
+secret_key: change-me-in-production   # JWT 签名 + 退订 HMAC（生产走 SECRET_KEY 环境变量）
+
+aws:
+    region: us-east-2
+    ses:
+        configuration_set: ""   # 事件回传总开关（如 ses-sender-events-prod）；空=无回执
+    sqs:
+        queue_url: ""           # 回执队列；空=不启动 SQS 轮询
+
+sender:
+    enabled: true             # 引擎开关（api 模式实例应设 false / 由 mode 接管）
+    concurrency: 2            # 发送 Worker 数
+    message_rate: 0           # 每 Worker 每秒上限；0=自动跟随 SES 配额
+    sliding_window_seconds: 0 # 可选固定窗口秒数（0=禁用）
+    sliding_window_rate: 0    # 窗口内总量上限
+
+unsubscribe:
+    base_url: ""              # 如 https://ses-sender.example.com；空=退订链接替换为 "#"
+
+bedrock:
+    model_id: global.anthropic.claude-opus-4-6-v1
+    region: us-east-1

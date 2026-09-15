@@ -1,0 +1,52 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "SesFullV1AndV2",
+            "Effect": "Allow",
+            "Action": [
+                "ses:*",
+                "sesv2:*"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SqsEvents",
+            "Effect": "Allow",
+            "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes"
+            ],
+            "Resource": "arn:aws:sqs:us-east-2:303235427801:ses-sender-events-prod"
+        },
+        {
+            "Sid": "CloudWatchMetrics",
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:ListMetrics"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "BedrockInvoke",
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:InvokeModel"
+            ],
+            "Resource": "arn:aws:bedrock:*::foundation-model/*"
+        },
+        {
+            "Sid": "S3Uploads",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": "arn:aws:s3:::ses-sender-uploads-prod/*"
+        }
+    ]
+}

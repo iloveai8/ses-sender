@@ -1,0 +1,55 @@
+{
+    "family": "{{FAMILY}}",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "{{EXECUTION_ROLE_ARN}}",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "containerDefinitions": [
+        {
+            "name": "frontend",
+            "image": "{{IMAGE}}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "BACKEND_URL",
+                    "value": "{{BACKEND_URL}}"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "{{LOG_GROUP}}",
+                    "awslogs-region": "us-east-2",
+                    "awslogs-stream-prefix": "frontend"
+                }
+            },
+            "healthCheck": {
+                "command": [
+                    "CMD",
+                    "wget",
+                    "-q",
+                    "-O",
+                    "/dev/null",
+                    "http://localhost:3000/"
+                ],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60
+            }
+        }
+    ]
+}

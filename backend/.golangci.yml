@@ -1,0 +1,20 @@
+# golangci-lint 配置（CI 第一道门；02-ARCHITECTure §7 规范：gofmt/vet/lint 强制）
+run:
+    timeout: 5m
+
+linters:
+    enable:
+        - errcheck      # 不许忽略 error
+        - govet         # go vet 标准检查
+        - staticcheck   # 静态分析全家桶
+        - unused        # 未使用代码
+        - ineffassign   # 无效赋值
+        - misspell      # 拼写
+        - revive        # 风格（导出注释、命名等）
+
+issues:
+    exclude-rules:
+        # 测试文件放宽：允许未处理错误
+        -   path: _test\.go
+            linters:
+                - errcheck

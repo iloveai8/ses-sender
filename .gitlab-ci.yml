@@ -1,0 +1,32 @@
+# backend CI 流水线（工作协议：lint → vet/test → build，红即挡；仅 backend 变更时触发）
+stages:
+  - lint
+  - test
+  - build
+
+workflow:
+  rules:
+    - changes:
+        - backend/**/*
+
+lint:
+  stage: lint
+  image: golangci/golangci-lint:v1.64
+  script:
+    - cd backend
+    - golangci-lint run
+
+test:
+  stage: test
+  image: golang:1.25
+  script:
+    - cd backend
+    - go vet ./...
+    - go test ./... -race -count=1
+
+build:
+  stage: build
+  image: golang:1.25
+  script:
+    - cd backend
+    - go build ./...

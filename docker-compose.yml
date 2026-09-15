@@ -1,0 +1,86 @@
+# ═══════════════════ 常用命令速查 ═══════════════════
+# 全栈一次启动:    docker-compose up -d
+# 分别启动:        docker-compose up -d mysql | backend | frontend
+# 停止全部(保数据): docker-compose down
+# 停止单个服务:    docker-compose stop backend
+# 查看日志:        docker-compose logs -f backend
+# 代码/配置变更后重建并启动: docker-compose up -d --build backend
+#   （前端改代码必须 --build；后端改代码同理）
+# 前端开发模式(热更新，需先释放3000端口):
+#   docker-compose stop frontend && cd frontend && npm run dev
+# 本地要调真 SES:  export AWS_ACCESS_KEY_ID=xxx AWS_SECRET_ACCESS_KEY=yyy 后再 up（无 .env 文件）
+# ═════════════════════════════════════════════════════
+
+services:
+    mysql:
+        image: mysql:8
+        container_name: ses-sender-mysql
+        ports:
+            - "3306:3306"
+        environment:
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-ses_sender_root_123}
+            - MYSQL_DATABASE=${MYSQL_DATABASE:-ses_sender}
+            - MYSQL_USER=${MYSQL_USER:-ses_sender}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD:-ses_sender_123}
+        volumes:
+            - ./data/mysql:/var/lib/mysql
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        restart: unless-stopped
+        healthcheck:
+            test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+            interval: 10s
+            timeout: 10s
+            retries: 10
+            start_period: 30s
+
+    backend:
+        build: ./backend
+        container_name: ses-sender-backend
+        # 后端不发布到宿主机（只走 frontend:3000 代理），容器间用 http://backend:8000 互访
+        expose:
+            - "8000"
+        environment:
+            # 只写"容器与本地裸跑默认值不同"的项；其余走 backend/config 挂载或内置默认值
+            - AWS_REGION=${AWS_REGION:-us-east-2}
+            - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+            - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+            - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-ses_sender}:${MYSQL_PASSWORD:-ses_sender_123}@mysql:3306/${MYSQL_DATABASE:-ses_sender}
+            # 回执事件链路 / 退订链接：默认留空（关闭），需要时 shell 环境里提供
+            - SQS_QUEUE_URL=${SQS_QUEUE_URL:-}
+            - SES_CONFIGURATION_SET=${SES_CONFIGURATION_SET:-}
+            - UNSUBSCRIBE_BASE_URL=${UNSUBSCRIBE_BASE_URL:-}
+        volumes:
+            # 本地配置直挂（backend/config/config.yaml 不存在则用默认值+env； DATABASE_URL 由下方
+            # env 注入覆盖——容器内数据库主机名是 mysql 不是 localhost，故此项不能进 yaml）
+            - ./backend/config:/app/config
+            - ./data/uploads:/app/uploads
+            - ./data/logs:/app/logs
+        depends_on:
+            mysql:
+                condition: service_healthy
+        restart: unless-stopped
+
+    frontend:
+        build:
+            context: ./frontend
+        container_name: ses-sender-frontend
+        ports:
+            - "3000:3000"
+        environment:
+            - BACKEND_URL=http://backend:8000
+        depends_on:
+            - backend
+        restart: unless-stopped
+
+    mcp:
+        build: ./mcp-server
+        container_name: ses-sender-mcp
+        ports:
+            - "8808:8808"
+        environment:
+            - SES_SENDER_URL=http://backend:8000
+            - MCP_PORT=8808
+            - MCP_API_KEY=${MCP_API_KEY:-}
+        depends_on:
+            - backend
+        restart: unless-stopped
