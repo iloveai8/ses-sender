@@ -82,7 +82,7 @@ Next.js 16 + React 19 + Tailwind 4 + TS，单页三模式（login/admin/user）�
 - 配置：`backend/config/` 只入库一个模板 `config.example.yaml`；本地要跑时 `cp config.example.yaml config.yaml`（gitignored）。多环境：`APP_ENV=test` 自动加载 `config.test.yaml`（同样 gitignored）。配置三级合并：flag > 环境变量 > yaml > 默认（变量名沿用旧版，生产 SSM 注入零改动）。compose 的 backend 服务**直接挂载 `./backend/config` 进容器**（本地 compose 与裸跑共用同一份配置；DATABASE_URL 例外——容器内 DB 主机名是 `mysql`，由 compose env 覆盖）。本地调真 SES：`export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...` 后再 up。
 - 本地栈：`docker-compose up -d mysql` → `cd backend && make run` → `cd frontend && npm run dev`（`.env.local` 的 BACKEND_URL 指向 :8000）。
 - ECS 生产：deploy/ 目录 tag 驱动发布，入口 ALB。运维手册 `docs/INFRA.md` + `docs/DEPLOY.md`。
-- Git：origin=内部 GitLab；活跃开发分支 `v2`（Go 重写）；`dev`/`main` 仍是 Python 基线。
+- Git：origin=内部 GitLab（Python 基线 `dev`/`main`）；`github`=个人 GitHub。**活跃开发分支 `v2` = GitHub master 开发线**（推法：`git push github v2:master`，根提交为快照 dd91362）；公司完整历史备份在本地分支 `v2-archive`（121 提交，勿删）。
 
 ## Code Style
 
