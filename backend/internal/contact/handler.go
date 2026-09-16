@@ -25,7 +25,7 @@ func (h *Handler) ListGroups(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, httpx.NewPage(items, total, page, pageSize))
+	httpx.WriteJSON(c, http.StatusOK, httpx.NewPage(items, total, page, pageSize))
 }
 
 // CreateGroup POST /groups {name, description?}
@@ -40,7 +40,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, g)
+	httpx.WriteJSON(c, http.StatusOK, g)
 }
 
 // UpdateGroup PUT /groups/:id {name?, description?}
@@ -62,7 +62,7 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, "读取更新结果失败"))
 		return
 	}
-	c.JSON(http.StatusOK, g)
+	httpx.WriteJSON(c, http.StatusOK, g)
 }
 
 // DeleteGroup DELETE /groups/:id（级联删联系人）
@@ -77,7 +77,7 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusNotFound, "客群不存在或无权操作"))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "客群已删除"})
+	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": "客群已删除"})
 }
 
 // ListContacts GET /groups/:id/contacts?search=&page=&page_size=
@@ -98,7 +98,7 @@ func (h *Handler) ListContacts(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, httpx.NewPage(items, total, page, pageSize))
+	httpx.WriteJSON(c, http.StatusOK, httpx.NewPage(items, total, page, pageSize))
 }
 
 // CreateContact POST /contacts {email 必填, name?, attributes?, group_id 必填}
@@ -137,7 +137,7 @@ func (h *Handler) CreateContact(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, out)
+	httpx.WriteJSON(c, http.StatusOK, out)
 }
 
 // DeleteContact DELETE /contacts/:id
@@ -152,7 +152,7 @@ func (h *Handler) DeleteContact(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusNotFound, "联系人不存在"))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "联系人已删除"})
+	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": "联系人已删除"})
 }
 
 // ── 小工具 ──
@@ -211,5 +211,5 @@ func intOr(v any, def int) int {
 }
 
 func writeErr(c *gin.Context, e *httpx.Error) {
-	c.JSON(e.Status, gin.H{"detail": e.Detail})
+	httpx.WriteJSON(c, e.Status, gin.H{"detail": e.Detail})
 }

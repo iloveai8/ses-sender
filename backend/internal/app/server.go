@@ -17,8 +17,10 @@ import (
 	"ses-sender/internal/account"
 	"ses-sender/internal/contact"
 	"ses-sender/internal/httpx"
+	"ses-sender/internal/platform/awsx"
 	"ses-sender/internal/platform/config"
 	"ses-sender/internal/platform/database"
+	"ses-sender/internal/template"
 )
 
 // Run 组合根入口：装配依赖并启动（引擎/事件源/调度器随域推进在 all|worker 模式接入）
@@ -51,12 +53,12 @@ func Run(cfg *config.Config) error {
 
 	// 健康端点（契约锚定：与 Python 版逐字节一致）
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "SES Sender API is running"})
+		httpx.WriteJSON(c, http.StatusOK, gin.H{"message": "SES Sender API is running"})
 	})
 
 	// 未匹配路由 → 404 JSON（gin 默认是 text/plain，契约要求 {"detail":"Not Found"}）
 	r.NoRoute(func(c *gin.Context) {
-		c.JSON(httpx.ErrNotFound().Status, gin.H{"detail": httpx.ErrNotFound().Detail})
+		httpx.WriteJSON(c, httpx.ErrNotFound().Status, gin.H{"detail": httpx.ErrNotFound().Detail})
 	})
 
 	// ── account 路由（Python include 顺序第一位）──
@@ -89,6 +91,25 @@ func Run(cfg *config.Config) error {
 		user.GET("/groups/:id/contacts", ct.ListContacts)
 		user.POST("/contacts", ct.CreateContact)
 		user.DELETE("/contacts/:id", ct.DeleteContact)
+	}
+
+	// ── template 路由（Python include 顺序第三位；/admin 版同构复用——按当前用户隔离，毛边照抄）──
+	sesTpl, err := awsx.NewSESTemplates(context.Background(), cfg.AWS.Region)
+	if err != nil {
+		return fmt.Errorf("SES 客户端初始化: %w", err)
+	}
+	tp := template.NewHandler(template.NewStore(db), sesTpl)
+	{
+		user.GET("/user/templates", tp.List)
+		user.POST("/user/templates", tp.Create)
+		user.PUT("/user/templates/:id", tp.Update)
+		user.DELETE("/user/templates/:id", tp.Delete)
+		user.GET("/user/templates/:id/attachments", tp.ListAttachments)
+		user.DELETE("/user/templates/:id/attachments/:att_id", tp.DeleteAttachment)
+		admin.GET("/admin/templates", tp.List)
+		admin.POST("/admin/templates", tp.Create)
+		admin.PUT("/admin/templates/:id", tp.Update)
+		admin.DELETE("/admin/templates/:id", tp.Delete)
 	}
 
 	srv := &http.Server{

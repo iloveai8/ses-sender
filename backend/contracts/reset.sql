@@ -11,3 +11,7 @@ INSERT INTO contacts (id, email, name, attributes, group_id) VALUES
  (1, 'seed1@harness.local', 'SeedOne', '{"city":"上海","level":"VIP"}', 1),
  (2, 'seed2@harness.local', 'SeedTwo', NULL, 1)
 ON DUPLICATE KEY UPDATE email=VALUES(email), name=VALUES(name), attributes=VALUES(attributes);
+INSERT INTO email_templates (id, name, ses_name, subject, html_body, text_body, user_id, created_at)
+VALUES (1, 'seed-tpl', 'u1_seedtpl', 'Seed Subject', '<p>seed</p>', ' ', 1, UTC_TIMESTAMP())
+ON DUPLICATE KEY UPDATE name=VALUES(name), subject=VALUES(subject);
+DELETE FROM email_templates WHERE name LIKE 'corpus%';

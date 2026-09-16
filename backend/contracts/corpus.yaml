@@ -148,3 +148,49 @@ cases:
     method: DELETE
     path: /contacts/99999
     auth: admin
+
+  # ── P6a template ──
+  - name: templates-list-seeded
+    method: GET
+    path: /user/templates
+    auth: admin
+  - name: templates-create-noauth
+    method: POST
+    path: /user/templates
+    body: { name: x, subject: y }
+  - name: templates-create-422-missing
+    method: POST
+    path: /user/templates
+    auth: admin
+    body: {}
+  - name: admin-templates-list
+    method: GET
+    path: /admin/templates
+    auth: admin
+  - name: templates-create-ok
+    method: POST
+    path: /user/templates
+    auth: admin
+    body: { name: corpus-tpl, subject: 语料模板, html_body: "<p>hi</p>" }
+    skip: true   # 真实 SES 双写（录制一次锁定响应形状）
+  - name: templates-put-notfound
+    method: PUT
+    path: /user/templates/99999
+    auth: admin
+    body: { subject: 新主题 }
+  - name: templates-delete-notfound
+    method: DELETE
+    path: /user/templates/99999
+    auth: admin
+  - name: attachments-list-seeded
+    method: GET
+    path: /user/templates/1/attachments
+    auth: admin
+  - name: attachments-list-notfound
+    method: GET
+    path: /user/templates/99999/attachments
+    auth: admin
+  - name: attachments-delete-notfound
+    method: DELETE
+    path: /user/templates/1/attachments/999
+    auth: admin

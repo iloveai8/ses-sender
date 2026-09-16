@@ -97,7 +97,7 @@ func (h *Handler) Login(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, "令牌签发失败"))
 		return
 	}
-	c.JSON(http.StatusOK, loginResponse{AccessToken: token, TokenType: "bearer", User: loginUserInfo{
+	httpx.WriteJSON(c, http.StatusOK, loginResponse{AccessToken: token, TokenType: "bearer", User: loginUserInfo{
 		ID: user.ID, Username: user.Username, DisplayName: user.DisplayName,
 		SenderName: user.SenderName, Email: user.Email,
 		IsAdmin: user.IsAdmin, DailySendLimit: user.DailySendLimit,
@@ -151,7 +151,7 @@ func (h *Handler) RequireAdmin() gin.HandlerFunc {
 
 // Me GET /auth/me
 func (h *Handler) Me(c *gin.Context) {
-	c.JSON(http.StatusOK, CurrentUser(c).Out())
+	httpx.WriteJSON(c, http.StatusOK, CurrentUser(c).Out())
 }
 
 // CurrentUser 从 ctx 取认证用户（未认证时返回零值，仅限已过 Authenticate 的路由使用）
@@ -175,7 +175,7 @@ func lockMessage(remainSeconds int) string {
 
 // writeErr 统一错误出口：{"detail": ...}（全项目唯一渲染点）
 func writeErr(c *gin.Context, e *httpx.Error) {
-	c.JSON(e.Status, gin.H{"detail": e.Detail})
+	httpx.WriteJSON(c, e.Status, gin.H{"detail": e.Detail})
 }
 
 // ── 用户管理（admin 专属）──────────────────────────────
@@ -191,7 +191,7 @@ func (h *Handler) AdminUsersList(c *gin.Context) {
 	for _, u := range users {
 		out = append(out, u.Out())
 	}
-	c.JSON(http.StatusOK, out)
+	httpx.WriteJSON(c, http.StatusOK, out)
 }
 
 // AdminUsersCreate POST /admin/users（422 按 UserCreate 字段定义顺序报全部缺失——pydantic 行为）
@@ -246,7 +246,7 @@ func (h *Handler) AdminUsersCreate(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusBadRequest, "用户名已存在"))
 		return
 	}
-	c.JSON(http.StatusOK, user.Out())
+	httpx.WriteJSON(c, http.StatusOK, user.Out())
 }
 
 // AdminUsersUpdate PUT /admin/users/:user_id（全字段可选；不存在 404 用户不存在）
@@ -300,7 +300,7 @@ func (h *Handler) AdminUsersUpdate(c *gin.Context) {
 		return
 	}
 	updated, _ := h.store.GetByID(c.Request.Context(), id)
-	c.JSON(http.StatusOK, updated.Out())
+	httpx.WriteJSON(c, http.StatusOK, updated.Out())
 }
 
 // ── 个人设置 ─────────────────────────────────────────
@@ -356,7 +356,7 @@ func (h *Handler) UnsubDefaults(c *gin.Context) {
 			json.Unmarshal(m["buttonText"], &cfg.ButtonText)
 		}
 	}
-	c.JSON(http.StatusOK, cfg)
+	httpx.WriteJSON(c, http.StatusOK, cfg)
 }
 
 // UnsubConfigGet GET /user/unsub-config：原始 JSON 透传；空/损坏兜 {}
@@ -379,7 +379,7 @@ func (h *Handler) UnsubConfigPut(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "退订页面配置已保存"})
+	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": "退订页面配置已保存"})
 }
 
 // ContactEmailPut PUT /user/contact-email
@@ -395,7 +395,7 @@ func (h *Handler) ContactEmailPut(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "收件邮箱已更新"})
+	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": "收件邮箱已更新"})
 }
 
 // ── JSON 取值小工具 ──────────────────────────────────

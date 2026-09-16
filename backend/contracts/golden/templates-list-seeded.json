@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "[{\"id\":1,\"name\":\"seed-tpl\",\"subject\":\"Seed Subject\",\"html_body\":\"\u003cp\u003eseed\u003c/p\u003e\",\"created_at\":\"\u003cTS\u003e\"}]"
+}
