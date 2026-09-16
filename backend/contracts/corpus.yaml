@@ -194,3 +194,68 @@ cases:
     method: DELETE
     path: /user/templates/1/attachments/999
     auth: admin
+
+  # ── P6b system：settings ──
+  - name: settings-get-defaults
+    method: GET
+    path: /admin/settings
+    auth: admin
+  - name: settings-put-noauth
+    method: PUT
+    path: /admin/settings
+    body: { unsub_page_title: x }
+  - name: settings-put-ok
+    method: PUT
+    path: /admin/settings
+    auth: admin
+    body: { unsub_page_title: 语料标题 }
+    skip: true
+  # ── P6b system：ai-models ──
+  - name: ai-models-get-empty
+    method: GET
+    path: /admin/ai-models
+    auth: admin
+  - name: ai-models-available-empty
+    method: GET
+    path: /ai-models/available
+    auth: admin
+  - name: ai-models-put-ok
+    method: PUT
+    path: /admin/ai-models
+    auth: admin
+    body: { models: [] }
+    skip: true
+  # ── P6b system：blacklist ──
+  - name: blacklist-list-empty
+    method: GET
+    path: /admin/blacklist
+    auth: admin
+  - name: blacklist-count
+    method: GET
+    path: /admin/blacklist/count
+    auth: admin
+  - name: blacklist-add-noauth
+    method: POST
+    path: /admin/blacklist
+    body: { email: x@x.com }
+  - name: blacklist-add-ok
+    method: POST
+    path: /admin/blacklist
+    auth: admin
+    body: { email: corpus-bl@harness.local, reason: corpus }
+    skip: true
+  - name: blacklist-add-dup
+    method: POST
+    path: /admin/blacklist
+    auth: admin
+    body: { email: corpus-bl@harness.local }
+    skip: true   # 依赖 add-ok 已执行（record 顺序保证）
+  - name: blacklist-delete-notfound
+    method: DELETE
+    path: /admin/blacklist/99999
+    auth: admin
+  - name: blacklist-batch-delete-empty
+    method: POST
+    path: /admin/blacklist/batch-delete
+    auth: admin
+    body: { ids: [] }

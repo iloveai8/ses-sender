@@ -15,3 +15,5 @@ INSERT INTO email_templates (id, name, ses_name, subject, html_body, text_body, 
 VALUES (1, 'seed-tpl', 'u1_seedtpl', 'Seed Subject', '<p>seed</p>', ' ', 1, UTC_TIMESTAMP())
 ON DUPLICATE KEY UPDATE name=VALUES(name), subject=VALUES(subject);
 DELETE FROM email_templates WHERE name LIKE 'corpus%';
+DELETE FROM system_settings WHERE `key` IN ('unsub_page_title', 'ai_models');
+DELETE FROM email_blacklist WHERE email LIKE 'corpus%';

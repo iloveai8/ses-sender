@@ -20,6 +20,7 @@ import (
 	"ses-sender/internal/platform/awsx"
 	"ses-sender/internal/platform/config"
 	"ses-sender/internal/platform/database"
+	"ses-sender/internal/system"
 	"ses-sender/internal/template"
 )
 
@@ -110,6 +111,26 @@ func Run(cfg *config.Config) error {
 		admin.POST("/admin/templates", tp.Create)
 		admin.PUT("/admin/templates/:id", tp.Update)
 		admin.DELETE("/admin/templates/:id", tp.Delete)
+	}
+
+	// ── system 路由（Python include 顺序第六位）──
+	sysStore := system.NewStore(db)
+	sysBL := system.NewBlacklistCache(sysStore)
+	ctxBL, cancelBL := context.WithCancel(context.Background())
+	defer cancelBL()
+	sysBL.Start(ctxBL) // 同步加载+60s 刷新（Python 无条件启动，照抄）
+	sysH := system.NewHandler(sysStore, sysBL, cfg.Bedrock)
+	{
+		admin.GET("/admin/settings", sysH.SettingsGet)
+		admin.PUT("/admin/settings", sysH.SettingsPut)
+		admin.GET("/admin/ai-models", sysH.AIMModelsGet)
+		admin.PUT("/admin/ai-models", sysH.AIMModelsPut)
+		user.GET("/ai-models/available", sysH.AIAvailable)
+		admin.GET("/admin/blacklist", sysH.BlacklistList)
+		admin.POST("/admin/blacklist", sysH.BlacklistAdd)
+		admin.DELETE("/admin/blacklist/:id", sysH.BlacklistDelete)
+		admin.POST("/admin/blacklist/batch-delete", sysH.BlacklistBatchDelete)
+		admin.GET("/admin/blacklist/count", sysH.BlacklistCount)
 	}
 
 	srv := &http.Server{
