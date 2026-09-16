@@ -341,19 +341,55 @@ func defaultUnsubConfig() unsubPageConfig {
 	}
 }
 
-// UnsubDefaults GET /user/unsub-defaults：默认配置 + 当前用户自定义覆盖（键级合并）
+// UnsubDefaults GET /user/unsub-defaults：三级合并 默认→系统级 unsub_page_*→用户级（=Python val 链）
 func (h *Handler) UnsubDefaults(c *gin.Context) {
 	cfg := defaultUnsubConfig()
-	if raw, _ := h.store.GetUnsubConfig(c.Request.Context(), CurrentUser(c).ID); raw != "" {
-		var m map[string]json.RawMessage
-		if json.Unmarshal([]byte(raw), &m) == nil {
-			json.Unmarshal(m["title"], &cfg.Title)
-			json.Unmarshal(m["subtitle"], &cfg.Subtitle)
-			json.Unmarshal(m["reasons"], &cfg.Reasons)
-			json.Unmarshal(m["success"], &cfg.Success)
-			json.Unmarshal(m["logo"], &cfg.Logo)
-			json.Unmarshal(m["color"], &cfg.Color)
-			json.Unmarshal(m["buttonText"], &cfg.ButtonText)
+	// 系统级
+	sys := map[string]string{}
+	if rows, err := h.store.db.QueryContext(c.Request.Context(),
+		"SELECT `key`, COALESCE(value,'') FROM system_settings WHERE `key` LIKE 'unsub_page_%'"); err == nil {
+		for rows.Next() {
+			var k, v string
+			if rows.Scan(&k, &v) == nil && v != "" {
+				sys[k] = v
+			}
+		}
+		rows.Close()
+	}
+	userRaw, _ := h.store.GetUnsubConfig(c.Request.Context(), CurrentUser(c).ID)
+	var user map[string]json.RawMessage
+	if userRaw != "" {
+		_ = json.Unmarshal([]byte(userRaw), &user)
+	}
+
+	set := func(dst *string, userKey, sysKey string) {
+		if user != nil {
+			var v string
+			if raw, ok := user[userKey]; ok && json.Unmarshal(raw, &v) == nil && v != "" {
+				*dst = v
+				return
+			}
+		}
+		if v := sys[sysKey]; v != "" {
+			*dst = v
+		}
+	}
+	set(&cfg.Title, "title", "unsub_page_title")
+	set(&cfg.Subtitle, "subtitle", "unsub_page_subtitle")
+	set(&cfg.Success, "success", "unsub_page_success")
+	set(&cfg.Logo, "logo", "unsub_page_logo")
+	set(&cfg.Color, "color", "unsub_page_color")
+	set(&cfg.ButtonText, "buttonText", "unsub_page_button_text")
+	// reasons：用户级(list)→系统级(JSON 串)→默认
+	if user != nil {
+		var rs []unsubReason
+		if raw, ok := user["reasons"]; ok && json.Unmarshal(raw, &rs) == nil && len(rs) > 0 {
+			cfg.Reasons = rs
+		}
+	} else if v := sys["unsub_page_reasons"]; v != "" {
+		var rs []unsubReason
+		if json.Unmarshal([]byte(v), &rs) == nil && len(rs) > 0 {
+			cfg.Reasons = rs
 		}
 	}
 	httpx.WriteJSON(c, http.StatusOK, cfg)

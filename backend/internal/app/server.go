@@ -17,6 +17,7 @@ import (
 	"ses-sender/internal/account"
 	"ses-sender/internal/campaign"
 	"ses-sender/internal/contact"
+	"ses-sender/internal/delivery"
 	"ses-sender/internal/httpx"
 	"ses-sender/internal/platform/awsx"
 	"ses-sender/internal/platform/config"
@@ -134,6 +135,11 @@ func Run(cfg *config.Config) error {
 		admin.GET("/admin/blacklist/count", sysH.BlacklistCount)
 	}
 
+	// ── delivery：退订端点（无鉴权——邮件里的对外小窗）──
+	unsubH := delivery.NewUnsubHandler(db, cfg.SecretKey)
+	r.GET("/unsubscribe", unsubH.Get)
+	r.POST("/unsubscribe", unsubH.Post)
+
 	// ── campaign 路由（Python include 顺序第五位）──
 	cp := campaign.NewHandler(campaign.NewStore(db))
 	{
@@ -154,6 +160,13 @@ func Run(cfg *config.Config) error {
 		admin.GET("/admin/users/quotas", cp.AdminQuotas)
 		admin.GET("/admin/sending-stats", cp.AdminStats)
 		admin.GET("/admin/sending-jobs", cp.AdminJobs)
+	}
+
+	// ── SQS 事件轮询（配置了队列才启动；api 模式不启——引擎归属见 02-ARCHITECTURE §2）──
+	if cfg.AWS.SQS.QueueURL != "" && cfg.Server.Mode != "api" {
+		if err := delivery.StartSQSWorker(context.Background(), db, cfg.AWS.SQS.QueueURL, cfg.AWS.Region); err != nil {
+			slog.Warn("SQS Worker 启动失败", "err", err)
+		}
 	}
 
 	srv := &http.Server{

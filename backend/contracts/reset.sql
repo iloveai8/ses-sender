@@ -15,7 +15,10 @@ INSERT INTO email_templates (id, name, ses_name, subject, html_body, text_body, 
 VALUES (1, 'seed-tpl', 'u1_seedtpl', 'Seed Subject', '<p>seed</p>', ' ', 1, UTC_TIMESTAMP())
 ON DUPLICATE KEY UPDATE name=VALUES(name), subject=VALUES(subject);
 DELETE FROM email_templates WHERE name LIKE 'corpus%';
-DELETE FROM system_settings WHERE `key` IN ('unsub_page_title', 'ai_models');
+DELETE FROM system_settings WHERE `key` IN ('ai_models');
+-- P8 固定种子：退订页系统级标题（unsub-get-valid 金标准依赖它存在）
+INSERT INTO system_settings (`key`, value) VALUES ('unsub_page_title', '语料标题')
+ON DUPLICATE KEY UPDATE value=VALUES(value);
 DELETE FROM email_blacklist WHERE email LIKE 'corpus%';
 
 -- P7 种子：批次/明细（固定历史日期，避开 dashboard 日界漂移）
@@ -44,3 +47,4 @@ ON DUPLICATE KEY UPDATE status=VALUES(status);
 INSERT INTO unsubscribe_list (id, email, source_email, reason, unsubscribed_at) VALUES
  (1, 'unsub-seed@harness.local', 'admin@seed.local', 'too_frequent', '2026-01-03 12:00:00')
 ON DUPLICATE KEY UPDATE reason=VALUES(reason);
+DELETE FROM unsubscribe_list WHERE email = 'seed1@harness.local';

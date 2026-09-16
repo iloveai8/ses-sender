@@ -337,3 +337,30 @@ cases:
     path: /unsubscribe-list/batch-delete
     auth: admin
     body: { ids: [] }
+
+  # ── P8 退订闭环（token 由 harness-secret-key-2026 现场生成，勿改）──
+  - name: unsub-get-no-token
+    method: GET
+    path: /unsubscribe
+  - name: unsub-get-invalid
+    method: GET
+    path: /unsubscribe?token=invalid
+  - name: unsub-get-badsig
+    method: GET
+    path: /unsubscribe?token=c2VlZDFAaGFybmVzcy5sb2NhbHxhZG1pbkBzZWVkLmxvY2FsfDAwMDAwMDAwMDAwMDAwMDA=
+  - name: unsub-get-valid
+    method: GET
+    path: /unsubscribe?token=c2VlZDFAaGFybmVzcy5sb2NhbHxhZG1pbkBzZWVkLmxvY2FsfGRhMTJhN2FkNjYwZmJhYzY=
+  - name: unsub-get-already
+    method: GET
+    path: /unsubscribe?token=dW5zdWItc2VlZEBoYXJuZXNzLmxvY2FsfGFkbWluQHNlZWQubG9jYWx8NDk4MTA5ZWE4MzVmYWY4MA==
+  - name: unsub-post-missing
+    method: POST
+    path: /unsubscribe
+  - name: unsub-post-invalid
+    method: POST
+    path: /unsubscribe?token=invalid
+  - name: unsub-post-ok
+    method: POST
+    path: /unsubscribe?token=c2VlZDFAaGFybmVzcy5sb2NhbHxhZG1pbkBzZWVkLmxvY2FsfGRhMTJhN2FkNjYwZmJhYzY=
+    skip: true   # 写 unsubscribe_list（幂等）

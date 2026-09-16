@@ -1,5 +1,5 @@
 {
   "status": 200,
   "content_type": "application/json",
-  "body": "{\"title\":\"退订确认\",\"subtitle\":\"我们很遗憾看到您离开。请告诉我们退订原因，帮助我们改进服务。\",\"reasons\":[{\"value\":\"too_frequent\",\"label\":\"收到邮件太频繁\"},{\"value\":\"not_relevant\",\"label\":\"内容与我无关\"},{\"value\":\"never_subscribed\",\"label\":\"我从未订阅过\"},{\"value\":\"prefer_other\",\"label\":\"我更喜欢其他渠道获取信息\"},{\"value\":\"other\",\"label\":\"其他原因\"}],\"success\":\"退订成功\",\"logo\":\"\",\"color\":\"#667eea\",\"buttonText\":\"确认退订\"}"
+  "body": "{\"title\":\"语料标题\",\"subtitle\":\"我们很遗憾看到您离开。请告诉我们退订原因，帮助我们改进服务。\",\"reasons\":[{\"value\":\"too_frequent\",\"label\":\"收到邮件太频繁\"},{\"value\":\"not_relevant\",\"label\":\"内容与我无关\"},{\"value\":\"never_subscribed\",\"label\":\"我从未订阅过\"},{\"value\":\"prefer_other\",\"label\":\"我更喜欢其他渠道获取信息\"},{\"value\":\"other\",\"label\":\"其他原因\"}],\"success\":\"退订成功\",\"logo\":\"\",\"color\":\"#667eea\",\"buttonText\":\"确认退订\"}"
 }
