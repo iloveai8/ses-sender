@@ -1,5 +1,5 @@
 {
   "status": 200,
   "content_type": "application/json",
-  "body": "{\"items\":[{\"id\":1,\"name\":\"seed-group\",\"description\":\"harness fixed seed\",\"user_id\":1,\"contact_count\":2}],\"total\":1,\"page\":1,\"page_size\":20,\"total_pages\":1}"
+  "body": "{\"items\":[{\"id\":88888,\"name\":\"empty-group\",\"description\":\"no contacts\",\"user_id\":1,\"contact_count\":0},{\"id\":1,\"name\":\"seed-group\",\"description\":\"harness fixed seed\",\"user_id\":1,\"contact_count\":2}],\"total\":2,\"page\":1,\"page_size\":20,\"total_pages\":1}"
 }

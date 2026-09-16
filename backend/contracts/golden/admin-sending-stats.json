@@ -1,5 +1,5 @@
 {
   "status": 200,
   "content_type": "application/json",
-  "body": "{\"summary\":{\"total_users\":1,\"total_jobs\":2,\"total_contacts\":3,\"success_rate\":50.0},\"users\":[{\"user_id\":1,\"username\":\"admin\",\"display_name\":\"管理员\",\"sender_name\":null,\"email\":\"\",\"total_jobs\":2,\"total_contacts\":3,\"success_count\":1,\"failed_count\":1,\"first_send\":\"\u003cTS\u003e\",\"last_send\":\"\u003cTS\u003e\"}]}"
+  "body": "{\"summary\":{\"total_users\":1,\"total_jobs\":2,\"total_contacts\":3,\"success_rate\":50.0},\"users\":[{\"user_id\":1,\"username\":\"admin\",\"display_name\":\"管理员\",\"sender_name\":null,\"email\":\"admin@seed.local\",\"total_jobs\":2,\"total_contacts\":3,\"success_count\":1,\"failed_count\":1,\"first_send\":\"\u003cTS\u003e\",\"last_send\":\"\u003cTS\u003e\"}]}"
 }

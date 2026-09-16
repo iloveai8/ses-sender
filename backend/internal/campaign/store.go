@@ -4,6 +4,7 @@ package campaign
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -313,4 +314,65 @@ func (s *Store) AllTodayQuota(ctx context.Context) (map[string]int, error) {
 		out[strconv.Itoa(uid)] = n
 	}
 	return out, rows.Err()
+}
+
+// ── 供 delivery 域 Sender 适配器调用的原始查询 ──
+
+// TodayQuotaRaw 配额三元组（limit, today_sent, remaining）
+func (s *Store) TodayQuotaRaw(ctx context.Context, userID int) (int, int, int) {
+	var limit sql.NullInt64
+	var sent int
+	_ = s.db.QueryRowContext(ctx, "SELECT daily_send_limit FROM users WHERE id = ?", userID).Scan(&limit)
+	l := 1000
+	if limit.Valid && limit.Int64 > 0 {
+		l = int(limit.Int64)
+	}
+	_ = s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(SUM(total_contacts),0) FROM sending_jobs
+		 WHERE user_id = ? AND created_at >= DATE(UTC_TIMESTAMP())`, userID).Scan(&sent)
+	rem := l - sent
+	if rem < 0 {
+		rem = 0
+	}
+	return l, sent, rem
+}
+
+// ContactRaw 联系人原始行
+type ContactRaw struct {
+	Email string
+	Name  string
+	Attrs map[string]string
+}
+
+// ContactsRaw 按客群枚举联系人（含 JSON 属性解析）
+func (s *Store) ContactsRaw(groupID int) []ContactRaw {
+	rows, err := s.db.Query(
+		"SELECT email, COALESCE(name,''), COALESCE(attributes,'') FROM contacts WHERE group_id = ?", groupID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var out []ContactRaw
+	for rows.Next() {
+		var email, name, attrsJSON string
+		if rows.Scan(&email, &name, &attrsJSON) != nil {
+			continue
+		}
+		attrs := map[string]string{}
+		if attrsJSON != "" {
+			_ = json.Unmarshal([]byte(attrsJSON), &attrs)
+		}
+		out = append(out, ContactRaw{Email: email, Name: name, Attrs: attrs})
+	}
+	return out
+}
+
+// UserDailyLimit 用户日配额（空/0 → 1000）
+func (s *Store) UserDailyLimit(ctx context.Context, userID int) int {
+	var limit sql.NullInt64
+	_ = s.db.QueryRowContext(ctx, "SELECT daily_send_limit FROM users WHERE id = ?", userID).Scan(&limit)
+	if limit.Valid && limit.Int64 > 0 {
+		return int(limit.Int64)
+	}
+	return 1000
 }

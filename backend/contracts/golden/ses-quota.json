@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"max_send_rate\":14.0,\"max_24_hour_send\":50000.0,\"sent_last_24_hours\":0.0}"
+}

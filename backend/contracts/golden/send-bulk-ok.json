@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"status\":\"queued\",\"batch_id\":\"\u003cBATCH\u003e\",\"source\":\"admin@seed.local\",\"total_contacts\":3,\"active_contacts\":2,\"skipped_unsubscribed\":1,\"message\":\"发送任务已创建，正在后台执行\"}"
+}

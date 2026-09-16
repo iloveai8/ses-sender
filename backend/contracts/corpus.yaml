@@ -364,3 +364,43 @@ cases:
     method: POST
     path: /unsubscribe?token=c2VlZDFAaGFybmVzcy5sb2NhbHxhZG1pbkBzZWVkLmxvY2FsfGRhMTJhN2FkNjYwZmJhYzY=
     skip: true   # 写 unsubscribe_list（幂等）
+
+  # ── P9 写路径 ──
+  - name: send-bulk-noauth
+    method: POST
+    path: /send-bulk
+    body: { TemplateId: 1, GroupId: 1 }
+  - name: send-bulk-tpl-notfound
+    method: POST
+    path: /send-bulk
+    auth: admin
+    body: { TemplateId: 99999, GroupId: 1 }
+  - name: send-bulk-group-notfound
+    method: POST
+    path: /send-bulk
+    auth: admin
+    body: { TemplateId: 1, GroupId: 99999 }
+  - name: send-bulk-no-contacts
+    method: POST
+    path: /send-bulk
+    auth: admin
+    body: { TemplateId: 1, GroupId: 88888 }
+  - name: send-bulk-422-missing
+    method: POST
+    path: /send-bulk
+    auth: admin
+    body: {}
+  - name: send-bulk-ok
+    method: POST
+    path: /send-bulk
+    auth: admin
+    body: { TemplateId: 1, GroupId: 1 }
+    skip: true   # 建批次（queued）——引擎消费由 P10 test 环境真验收
+  - name: test-email-noauth
+    method: POST
+    path: /admin/test-email
+    body: { source: x@x.com, to: y@y.com, subject: s, html_body: "<p>t</p>" }
+  - name: ses-quota
+    method: GET
+    path: /ses-quota
+    auth: admin

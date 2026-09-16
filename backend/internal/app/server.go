@@ -140,6 +140,13 @@ func Run(cfg *config.Config) error {
 	r.GET("/unsubscribe", unsubH.Get)
 	r.POST("/unsubscribe", unsubH.Post)
 
+	// ── delivery：写路径端点 ──
+	snd := delivery.NewCampaignSender(campaign.NewStore(db))
+	wh := delivery.NewWriteHandler(db, snd, cfg.AWS.Region)
+	user.POST("/send-bulk", wh.SendBulk)
+	user.GET("/ses-quota", wh.SESQuota)
+	admin.POST("/admin/test-email", wh.TestEmail)
+
 	// ── campaign 路由（Python include 顺序第五位）──
 	cp := campaign.NewHandler(campaign.NewStore(db))
 	{

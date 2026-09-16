@@ -48,3 +48,6 @@ INSERT INTO unsubscribe_list (id, email, source_email, reason, unsubscribed_at) 
  (1, 'unsub-seed@harness.local', 'admin@seed.local', 'too_frequent', '2026-01-03 12:00:00')
 ON DUPLICATE KEY UPDATE reason=VALUES(reason);
 DELETE FROM unsubscribe_list WHERE email = 'seed1@harness.local';
+DELETE FROM sending_jobs WHERE batch_id LIKE 'batch-%' AND batch_id NOT LIKE 'batch-seed%';
+DELETE FROM sending_job_details WHERE batch_id LIKE 'batch-%' AND batch_id NOT LIKE 'batch-seed%';
+UPDATE users SET email = 'admin@seed.local' WHERE username = 'admin';

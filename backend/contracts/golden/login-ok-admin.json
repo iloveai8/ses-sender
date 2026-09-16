@@ -1,5 +1,5 @@
 {
   "status": 200,
   "content_type": "application/json",
-  "body": "{\"access_token\":\"\u003cJWT\u003e\",\"token_type\":\"bearer\",\"user\":{\"id\":1,\"username\":\"admin\",\"display_name\":\"管理员\",\"sender_name\":null,\"email\":\"\",\"is_admin\":true,\"daily_send_limit\":1000}}"
+  "body": "{\"access_token\":\"\u003cJWT\u003e\",\"token_type\":\"bearer\",\"user\":{\"id\":1,\"username\":\"admin\",\"display_name\":\"管理员\",\"sender_name\":null,\"email\":\"admin@seed.local\",\"is_admin\":true,\"daily_send_limit\":1000}}"
 }
