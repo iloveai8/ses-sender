@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"summary\":{\"total_jobs\":2,\"total_emails\":3,\"today_sent\":0,\"month_sent\":0,\"success_jobs\":1,\"failed_jobs\":1,\"daily_limit\":1000,\"daily_remaining\":1000},\"delivery\":{\"total\":3,\"delivered\":2,\"bounced\":0,\"opened\":1,\"clicked\":1,\"complained\":0,\"receipt_available\":true},\"daily_trend\":[{\"date\":\"09-10\",\"count\":0},{\"date\":\"09-11\",\"count\":0},{\"date\":\"09-12\",\"count\":0},{\"date\":\"09-13\",\"count\":0},{\"date\":\"09-14\",\"count\":0},{\"date\":\"09-15\",\"count\":0},{\"date\":\"09-16\",\"count\":0}],\"recent_jobs\":[{\"batch_id\":\"batch-seed000002\",\"template_name\":\"seed-tpl\",\"group_name\":\"seed-group\",\"total_contacts\":1,\"status\":\"failed\",\"created_at\":\"\u003cTS\u003e\"},{\"batch_id\":\"batch-seed000001\",\"template_name\":\"seed-tpl\",\"group_name\":\"seed-group\",\"total_contacts\":2,\"status\":\"success\",\"created_at\":\"\u003cTS\u003e\"}]}"
+}

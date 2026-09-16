@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"send\":2,\"delivery\":2,\"bounce\":0,\"complaint\":0,\"open\":1,\"click\":1,\"reject\":0,\"delivery_rate\":100.0,\"open_rate\":50.0,\"bounce_rate\":0.0,\"receipt_available\":true}"
+}

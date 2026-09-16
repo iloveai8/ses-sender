@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"items\":[{\"id\":1,\"email\":\"unsub-seed@harness.local\",\"source_email\":\"admin@seed.local\",\"reason\":\"too_frequent\",\"unsubscribed_at\":\"\u003cTS\u003e\"}],\"total\":1,\"page\":1,\"page_size\":20,\"total_pages\":1}"
+}

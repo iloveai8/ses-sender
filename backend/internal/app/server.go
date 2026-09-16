@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"ses-sender/internal/account"
+	"ses-sender/internal/campaign"
 	"ses-sender/internal/contact"
 	"ses-sender/internal/httpx"
 	"ses-sender/internal/platform/awsx"
@@ -131,6 +132,28 @@ func Run(cfg *config.Config) error {
 		admin.DELETE("/admin/blacklist/:id", sysH.BlacklistDelete)
 		admin.POST("/admin/blacklist/batch-delete", sysH.BlacklistBatchDelete)
 		admin.GET("/admin/blacklist/count", sysH.BlacklistCount)
+	}
+
+	// ── campaign 路由（Python include 顺序第五位）──
+	cp := campaign.NewHandler(campaign.NewStore(db))
+	{
+		user.GET("/user/dashboard", cp.Dashboard)
+		user.GET("/user/daily-quota", cp.DailyQuota)
+		user.GET("/sending-jobs", cp.ListJobs)
+		user.GET("/sending-jobs/:batch_id/metrics", cp.Metrics)
+		user.GET("/sending-jobs/:batch_id/details", cp.Details)
+		user.GET("/sending-jobs/:batch_id/progress", cp.Progress)
+		user.GET("/email-details", cp.EmailDetails)
+		user.GET("/scheduled-jobs", cp.ListScheduled)
+		user.POST("/scheduled-jobs", cp.CreateScheduled)
+		user.PUT("/scheduled-jobs/:id", cp.UpdateScheduled)
+		user.DELETE("/scheduled-jobs/:id", cp.DeleteScheduled)
+		user.GET("/unsubscribe-list", cp.ListUnsub)
+		user.DELETE("/unsubscribe-list/:id", cp.RestoreUnsub)
+		user.POST("/unsubscribe-list/batch-delete", cp.BatchRestoreUnsub)
+		admin.GET("/admin/users/quotas", cp.AdminQuotas)
+		admin.GET("/admin/sending-stats", cp.AdminStats)
+		admin.GET("/admin/sending-jobs", cp.AdminJobs)
 	}
 
 	srv := &http.Server{

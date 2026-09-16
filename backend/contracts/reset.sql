@@ -17,3 +17,30 @@ ON DUPLICATE KEY UPDATE name=VALUES(name), subject=VALUES(subject);
 DELETE FROM email_templates WHERE name LIKE 'corpus%';
 DELETE FROM system_settings WHERE `key` IN ('unsub_page_title', 'ai_models');
 DELETE FROM email_blacklist WHERE email LIKE 'corpus%';
+
+-- P7 种子：批次/明细（固定历史日期，避开 dashboard 日界漂移）
+INSERT INTO sending_jobs (id, user_id, batch_id, template_name, template_id, group_name, group_id,
+  source_email, from_name, reply_to, total_contacts, sent_count, total_batches, status,
+  error_message, configuration_set, created_at, finished_at) VALUES
+ (1, 1, 'batch-seed000001', 'seed-tpl', 1, 'seed-group', 1, 'admin@seed.local', 'SeedSender',
+  'reply@seed.local', 2, 2, 0, 'success', NULL, '', '2026-01-01 09:00:00', '2026-01-01 09:00:05'),
+ (2, 1, 'batch-seed000002', 'seed-tpl', 1, 'seed-group', 1, 'admin@seed.local', 'SeedSender',
+  'reply@seed.local', 1, 0, 0, 'failed', 'seed fail reason', '', '2026-01-02 10:00:00', '2026-01-02 10:00:03')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+INSERT INTO sending_job_details (id, job_id, batch_id, message_id, recipient, send_status,
+  delivery_status, delivery_time, open_count, first_open_time, click_count, created_at) VALUES
+ (1, 1, 'batch-seed000001', 'seedmsg000001', 'seed1@harness.local', 'Success', 'Delivery', '2026-01-01 09:00:04', 1, '2026-01-01 10:00:00', 0, '2026-01-01 09:00:00'),
+ (2, 1, 'batch-seed000001', 'seedmsg000002', 'seed2@harness.local', 'Success', 'Delivery', '2026-01-01 09:00:04', 0, NULL, 1, '2026-01-01 09:00:00'),
+ (3, 2, 'batch-seed000002', NULL, 'seed1@harness.local', 'Failed', NULL, NULL, 0, NULL, 0, '2026-01-02 10:00:00')
+ON DUPLICATE KEY UPDATE send_status=VALUES(send_status);
+-- 定时任务（paused 防录音棚调度器真执行）
+INSERT INTO scheduled_jobs (id, user_id, template_id, group_id, template_name, group_name,
+  schedule_type, scheduled_time, cron_hour, cron_minute, status, next_run_at, last_run_at,
+  run_count, last_batch_id, created_at, updated_at) VALUES
+ (1, 1, 1, 1, 'seed-tpl', 'seed-group', 'daily', '2026-01-01 09:00:00', 9, 0, 'paused',
+  '2026-01-02 09:00:00', '2026-01-01 09:00:00', 1, 'batch-seed000001', '2026-01-01 08:00:00', '2026-01-01 08:00:00')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+-- 退订记录
+INSERT INTO unsubscribe_list (id, email, source_email, reason, unsubscribed_at) VALUES
+ (1, 'unsub-seed@harness.local', 'admin@seed.local', 'too_frequent', '2026-01-03 12:00:00')
+ON DUPLICATE KEY UPDATE reason=VALUES(reason);

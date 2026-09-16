@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"items\":[{\"id\":2,\"batch_id\":\"batch-seed000002\",\"username\":\"admin\",\"display_name\":\"管理员\",\"template_name\":\"seed-tpl\",\"group_name\":\"seed-group\",\"source_email\":\"admin@seed.local\",\"total_contacts\":1,\"status\":\"failed\",\"configuration_set\":\"\",\"created_at\":\"\u003cTS\u003e\"},{\"id\":1,\"batch_id\":\"batch-seed000001\",\"username\":\"admin\",\"display_name\":\"管理员\",\"template_name\":\"seed-tpl\",\"group_name\":\"seed-group\",\"source_email\":\"admin@seed.local\",\"total_contacts\":2,\"status\":\"success\",\"configuration_set\":\"\",\"created_at\":\"\u003cTS\u003e\"}],\"total\":2,\"page\":1,\"page_size\":15,\"total_pages\":1}"
+}

@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "[{\"id\":1,\"user_id\":1,\"template_id\":1,\"group_id\":1,\"template_name\":\"seed-tpl\",\"group_name\":\"seed-group\",\"schedule_type\":\"daily\",\"scheduled_time\":\"\u003cTS\u003e\",\"cron_hour\":9,\"cron_minute\":0,\"day_of_week\":null,\"day_of_month\":null,\"status\":\"paused\",\"next_run_at\":\"\u003cTS\u003e\",\"last_run_at\":\"\u003cTS\u003e\",\"run_count\":1,\"last_batch_id\":\"batch-seed000001\",\"error_message\":null,\"created_at\":\"\u003cTS\u003e\"}]"
+}

@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "[{\"id\":1,\"batch_id\":\"batch-seed000001\",\"message_id\":\"seedmsg000001\",\"recipient\":\"seed1@harness.local\",\"send_status\":\"Success\",\"send_error\":null,\"delivery_status\":\"Delivery\",\"delivery_time\":\"\u003cTS\u003e\",\"bounce_type\":null,\"bounce_subtype\":null,\"bounce_message\":null,\"open_count\":1,\"first_open_time\":\"\u003cTS\u003e\",\"click_count\":0,\"first_click_time\":null,\"complaint_time\":null,\"created_at\":\"\u003cTS\u003e\"},{\"id\":2,\"batch_id\":\"batch-seed000001\",\"message_id\":\"seedmsg000002\",\"recipient\":\"seed2@harness.local\",\"send_status\":\"Success\",\"send_error\":null,\"delivery_status\":\"Delivery\",\"delivery_time\":\"\u003cTS\u003e\",\"bounce_type\":null,\"bounce_subtype\":null,\"bounce_message\":null,\"open_count\":0,\"first_open_time\":null,\"click_count\":1,\"first_click_time\":null,\"complaint_time\":null,\"created_at\":\"\u003cTS\u003e\"}]"
+}

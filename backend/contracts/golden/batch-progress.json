@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"batch_id\":\"batch-seed000001\",\"status\":\"success\",\"total_contacts\":2,\"sent_count\":2,\"total_batches\":0,\"progress\":100.0,\"error_message\":null,\"finished_at\":\"\u003cTS\u003e\"}"
+}

@@ -1,5 +1,5 @@
 {
   "status": 200,
   "content_type": "application/json",
-  "body": "{\"id\":6,\"name\":\"corpus-group\",\"description\":\"语料临时客群\",\"user_id\":1,\"contact_count\":0}"
+  "body": "{\"id\":7,\"name\":\"corpus-group\",\"description\":\"语料临时客群\",\"user_id\":1,\"contact_count\":0}"
 }

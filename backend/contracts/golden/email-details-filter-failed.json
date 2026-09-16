@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"items\":[{\"id\":3,\"batch_id\":\"batch-seed000002\",\"message_id\":null,\"recipient\":\"seed1@harness.local\",\"send_status\":\"Failed\",\"send_error\":null,\"delivery_status\":null,\"delivery_time\":null,\"bounce_type\":null,\"bounce_subtype\":null,\"bounce_message\":null,\"open_count\":0,\"first_open_time\":null,\"click_count\":0,\"first_click_time\":null,\"complaint_time\":null,\"created_at\":\"\u003cTS\u003e\",\"template_name\":\"seed-tpl\",\"group_name\":\"seed-group\",\"source_email\":\"admin@seed.local\"}],\"total\":1,\"page\":1,\"page_size\":20,\"total_pages\":1}"
+}

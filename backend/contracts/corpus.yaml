@@ -259,3 +259,81 @@ cases:
     path: /admin/blacklist/batch-delete
     auth: admin
     body: { ids: [] }
+
+  # ── P7 campaign 读侧 ──
+  - name: dashboard-seeded
+    method: GET
+    path: /user/dashboard
+    auth: admin
+  - name: daily-quota
+    method: GET
+    path: /user/daily-quota
+    auth: admin
+  - name: sending-jobs-list
+    method: GET
+    path: /sending-jobs
+    auth: admin
+  - name: batch-metrics
+    method: GET
+    path: /sending-jobs/batch-seed000001/metrics
+    auth: admin
+  - name: batch-metrics-notfound
+    method: GET
+    path: /sending-jobs/batch-nope000009/metrics
+    auth: admin
+  - name: batch-details
+    method: GET
+    path: /sending-jobs/batch-seed000001/details
+    auth: admin
+  - name: batch-progress
+    method: GET
+    path: /sending-jobs/batch-seed000001/progress
+    auth: admin
+  - name: email-details-filter-failed
+    method: GET
+    path: /email-details?send_status=Failed
+    auth: admin
+  - name: admin-users-quotas
+    method: GET
+    path: /admin/users/quotas
+    auth: admin
+  - name: admin-sending-stats
+    method: GET
+    path: /admin/sending-stats
+    auth: admin
+  - name: admin-sending-jobs
+    method: GET
+    path: /admin/sending-jobs
+    auth: admin
+  - name: scheduled-jobs-list
+    method: GET
+    path: /scheduled-jobs
+    auth: admin
+  - name: scheduled-create-tpl-notfound
+    method: POST
+    path: /scheduled-jobs
+    auth: admin
+    body: { template_id: 99999, group_id: 1, schedule_type: daily, scheduled_time: "2027-01-01T09:00:00" }
+  - name: scheduled-create-badtime
+    method: POST
+    path: /scheduled-jobs
+    auth: admin
+    body: { template_id: 1, group_id: 1, schedule_type: daily, scheduled_time: "not-a-time" }
+  - name: scheduled-delete-notfound
+    method: DELETE
+    path: /scheduled-jobs/99999
+    auth: admin
+  - name: unsub-list-seeded
+    method: GET
+    path: /unsubscribe-list
+    auth: admin
+  - name: unsub-restore-ok
+    method: DELETE
+    path: /unsubscribe-list/1
+    auth: admin
+    skip: true
+  - name: unsub-batch-delete-empty
+    method: POST
+    path: /unsubscribe-list/batch-delete
+    auth: admin
+    body: { ids: [] }
