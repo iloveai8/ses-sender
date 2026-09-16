@@ -27,7 +27,7 @@ AWS SES 批量邮件管理平台——模板管理、受众管理、批量/定�
 
 ```bash
 # 1. 配置
-cp backend/config/config.example.yaml backend/config.yaml   # 按需修改（数据库地址等）
+cp backend/config/config.example.yaml backend/config/config.yaml   # 按需修改（数据库地址等）
 
 # 2. 一键起全栈（MySQL + 后端 + 前端 + MCP）
 docker-compose up -d
