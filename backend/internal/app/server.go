@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"ses-sender/internal/account"
+	"ses-sender/internal/contact"
 	"ses-sender/internal/httpx"
 	"ses-sender/internal/platform/config"
 	"ses-sender/internal/platform/database"
@@ -76,6 +77,18 @@ func Run(cfg *config.Config) error {
 		user.PUT("/user/unsub-config", acct.UnsubConfigPut)
 		user.GET("/user/unsub-defaults", acct.UnsubDefaults)
 		user.PUT("/user/contact-email", acct.ContactEmailPut)
+	}
+
+	// ── contact 路由（Python include 顺序第二位）──
+	ct := contact.NewHandler(contact.NewStore(db))
+	{
+		user.GET("/groups", ct.ListGroups)
+		user.POST("/groups", ct.CreateGroup)
+		user.PUT("/groups/:id", ct.UpdateGroup)
+		user.DELETE("/groups/:id", ct.DeleteGroup)
+		user.GET("/groups/:id/contacts", ct.ListContacts)
+		user.POST("/contacts", ct.CreateContact)
+		user.DELETE("/contacts/:id", ct.DeleteContact)
 	}
 
 	srv := &http.Server{

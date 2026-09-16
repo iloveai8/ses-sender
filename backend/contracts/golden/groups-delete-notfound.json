@@ -1,0 +1,5 @@
+{
+  "status": 404,
+  "content_type": "application/json",
+  "body": "{\"detail\":\"客群不存在或无权操作\"}"
+}

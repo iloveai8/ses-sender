@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "content_type": "application/json",
+  "body": "{\"items\":[{\"id\":2,\"email\":\"seed2@harness.local\",\"name\":\"SeedTwo\",\"attributes\":null,\"group_id\":1},{\"id\":1,\"email\":\"seed1@harness.local\",\"name\":\"SeedOne\",\"attributes\":\"{\\\"city\\\":\\\"上海\\\",\\\"level\\\":\\\"VIP\\\"}\",\"group_id\":1}],\"total\":2,\"page\":1,\"page_size\":20,\"total_pages\":1}"
+}

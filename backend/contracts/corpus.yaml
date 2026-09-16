@@ -86,3 +86,65 @@ cases:
     path: /user/contact-email
     auth: admin
     body: { contact_email: "" }
+
+  # ── P5 contact：客群 ──
+  - name: groups-list-seeded
+    method: GET
+    path: /groups
+    auth: admin
+  - name: groups-list-search-miss
+    method: GET
+    path: /groups?search=nosuchgroup
+    auth: admin
+  - name: groups-create-noauth
+    method: POST
+    path: /groups
+    body: { name: x }
+  - name: groups-create-ok
+    method: POST
+    path: /groups
+    auth: admin
+    body: { name: corpus-group, description: 语料临时客群 }
+    skip: true
+  - name: groups-put-notfound
+    method: PUT
+    path: /groups/99999
+    auth: admin
+    body: { name: 不存在的客群 }
+  - name: groups-delete-notfound
+    method: DELETE
+    path: /groups/99999
+    auth: admin
+  # ── P5 contact：联系人 ──
+  - name: contacts-list-seeded
+    method: GET
+    path: /groups/1/contacts
+    auth: admin
+  - name: contacts-list-search
+    method: GET
+    path: /groups/1/contacts?search=seed1
+    auth: admin
+  - name: contacts-list-group-notfound
+    method: GET
+    path: /groups/99999/contacts
+    auth: admin
+  - name: contacts-create-group-notfound
+    method: POST
+    path: /contacts
+    auth: admin
+    body: { email: x@x.com, name: x, group_id: 99999 }
+  - name: contacts-create-422-missing
+    method: POST
+    path: /contacts
+    auth: admin
+    body: { name: 只有名字 }
+  - name: contacts-create-ok
+    method: POST
+    path: /contacts
+    auth: admin
+    body: { email: corpus-c1@harness.local, name: 语料联系人, group_id: 1, attributes: '{"k":"v"}' }
+    skip: true
+  - name: contacts-delete-notfound
+    method: DELETE
+    path: /contacts/99999
+    auth: admin
