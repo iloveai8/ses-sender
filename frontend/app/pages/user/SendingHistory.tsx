@@ -17,6 +17,14 @@ export default function SendingHistory() {
   const load=async(p=page)=>{
     try{const d=await(await fetch(`${API}/sending-jobs?page=${p}&page_size=10`,{headers:authH(token)})).json();setJobs(d.items||[]);setTotal(d.total||0);setTotalPages(d.total_pages||1);setPage(d.page||1);}catch{setJobs([]);}
   };
+
+  const retryBatch=async(batchId:string)=>{
+    try{
+      const r=await fetch(`${API}/sending-jobs/${batchId}/retry`,{method:"POST",headers:authH(token)});
+      const d=await r.json();
+      if(r.ok){alert(d.message||"已重试");load(page);}else{alert(d.detail||"重试失败");}
+    }catch{alert("网络错误");}
+  };
   useEffect(()=>{
     load(1);
     fetch(`${API}/auth/me`,{headers:authH(token)}).then(r=>r.json()).then(d=>{setContactEmail(d.contact_email||d.email||"");}).catch(()=>{});
@@ -102,7 +110,10 @@ export default function SendingHistory() {
             </div>
           </td>
           <td className="py-3 px-3 text-xs text-gray-400 whitespace-nowrap">{fmtTime(j.created_at)}</td>
-          <td className="py-3 px-3"><Btn variant="primary" size="sm" onClick={()=>openMetrics(j)} disabled={isSending}>{t("history.viewMetrics")}</Btn></td>
+          <td className="py-3 px-3"><div className="flex gap-2">
+            <Btn variant="primary" size="sm" onClick={()=>openMetrics(j)} disabled={isSending}>{t("history.viewMetrics")}</Btn>
+            {(j.status==="failed"||j.status==="partial")&&<Btn variant="outline" size="sm" onClick={()=>retryBatch(j.batch_id)}>重试</Btn>}
+          </div></td>
         </tr>})}</tbody>
       </table></div>
       {jobs.length===0&&<p className="text-center py-8 text-sm text-gray-400">{t("history.noRecords")}</p>}

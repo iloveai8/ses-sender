@@ -14,14 +14,16 @@ import (
 
 // Engine 发送引擎：Scanner goroutine → buffered channel → Worker 池
 type Engine struct {
-	db       *sql.DB
-	provider MailProvider
-	bl       BlacklistChecker
-	taskCh   chan SendTask
-	quit     chan struct{}
-	wg       sync.WaitGroup
-	rate     int // 每 Worker 每秒上限
-	workers  int
+	db        *sql.DB
+	provider  MailProvider
+	bl        BlacklistChecker
+	taskCh    chan SendTask
+	quit      chan struct{}
+	wg        sync.WaitGroup
+	rate      int // 每 Worker 每秒上限
+	workers   int
+	secret    string // 退订 HMAC 密钥
+	unsubBase string // 退订链接前缀（空=模板里替换为 #）
 }
 
 // MailProvider 渠道接口（第一步唯一实现 SES；P10 后多渠道在此扩展）
@@ -53,22 +55,19 @@ type SendTask struct {
 }
 
 // NewEngine 构造引擎；rate<=0 时自动 floor(quota/workers) 下限 1
-func NewEngine(db *sql.DB, p MailProvider, bl BlacklistChecker, workers, rate int) *Engine {
+func NewEngine(db *sql.DB, p MailProvider, bl BlacklistChecker, workers, rate int, secret, unsubBase string) *Engine {
 	if workers < 1 {
 		workers = 2
 	}
 	if rate <= 0 {
-		q := p.GetQuota()
-		rate = q / workers
-		if rate < 1 {
-			rate = 1
-		}
+		rate = 7 // 默认每 Worker 每秒 7 封（=配额14/2Worker）
 	}
 	return &Engine{
 		db: db, provider: p, bl: bl,
 		taskCh: make(chan SendTask, workers*rate*4),
 		quit:   make(chan struct{}),
 		rate:   rate, workers: workers,
+		secret: secret, unsubBase: unsubBase,
 	}
 }
 
@@ -220,13 +219,19 @@ func (e *Engine) enqueueBatch(ctx context.Context, batch string) bool {
 	rows.Close()
 
 	for _, d := range dets {
+		// 生成退订链接（每个收件人独立的 HMAC token）
+		unsubURL := ""
+		if e.unsubBase != "" {
+			token := GenerateUnsubToken(e.secret, d.recipient, d.src)
+			unsubURL = e.unsubBase + "/unsubscribe?token=" + token
+		}
 		select {
 		case e.taskCh <- SendTask{
 			JobID: 0, BatchID: batch, DetailID: d.detailID,
 			Recipient: d.recipient, Name: d.name,
 			SubjectTpl: d.subject, HTMLTpl: d.html,
 			SourceEmail: d.src, FromName: d.from, ReplyTo: d.reply,
-			UnsubURL: "", ConfigSet: d.cfg,
+			UnsubURL: unsubURL, ConfigSet: d.cfg,
 		}:
 		default:
 			return false // 队满：本轮中止

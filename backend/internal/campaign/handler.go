@@ -56,6 +56,35 @@ func limit(n int) int {
 
 // ── 批次列表/指标/明细/进度 ──
 
+// RetryBatch POST /sending-jobs/:batch_id/retry——失败/部分失败的批次重置回 queued，引擎自动重发
+func (h *Handler) RetryBatch(c *gin.Context) {
+	u := account.CurrentUser(c)
+	restrict := 0
+	if !u.IsAdmin {
+		restrict = u.ID
+	}
+	batchID := c.Param("batch_id")
+
+	j, err := h.store.GetJobByBatch(c.Request.Context(), batchID, restrict)
+	if err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	if j == nil {
+		writeErr(c, httpx.New(http.StatusNotFound, "批次不存在"))
+		return
+	}
+	if j.Status != "failed" && j.Status != "partial" {
+		writeErr(c, httpx.New(http.StatusBadRequest, "仅失败或部分失败的批次可重试（当前状态: "+j.Status+"）"))
+		return
+	}
+	if err := h.store.RetryBatch(c.Request.Context(), batchID); err != nil {
+		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": "批次已重置为待发送，引擎将自动重发"})
+}
+
 // ListJobs GET /sending-jobs
 func (h *Handler) ListJobs(c *gin.Context) {
 	page, pageSize := pageParams(c, 15)

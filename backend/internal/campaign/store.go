@@ -376,3 +376,24 @@ func (s *Store) UserDailyLimit(ctx context.Context, userID int) int {
 	}
 	return 1000
 }
+
+// RetryBatch 失败批次重置：job→queued + Failed 明细→Pending（引擎 Scanner 自动拾取重发）
+func (s *Store) RetryBatch(ctx context.Context, batchID string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE sending_jobs SET status='queued', sent_count=0, error_message=NULL, finished_at=NULL
+		 WHERE batch_id=? AND status IN ('failed','partial')`, batchID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE sending_job_details SET send_status='Pending', send_error=NULL, message_id=NULL,
+		 delivery_status=NULL, delivery_time=NULL
+		 WHERE batch_id=? AND send_status='Failed'`, batchID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}

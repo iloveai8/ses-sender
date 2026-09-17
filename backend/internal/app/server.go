@@ -135,6 +135,21 @@ func Run(cfg *config.Config) error {
 	r.GET("/unsubscribe", unsubH.Get)
 	r.POST("/unsubscribe", unsubH.Post)
 
+	// ── delivery：发送引擎（all/worker 模式启动——Scanner→channel→Worker 池）──
+	if cfg.Server.Mode != "api" {
+		sesMail, err := delivery.NewSESMailProvider(context.Background(), cfg.AWS.Region, cfg.AWS.SES.ConfigurationSet, cfg.Unsub.BaseURL)
+		if err != nil {
+			return fmt.Errorf("SES 发信客户端初始化: %w", err)
+		}
+		engine := delivery.NewEngine(db, sesMail, sysBL,
+			cfg.Sender.Concurrency, cfg.Sender.MessageRate,
+			cfg.SecretKey, cfg.Unsub.BaseURL)
+		engineCtx, engineCancel := context.WithCancel(context.Background())
+		defer engineCancel()
+		engine.Start(engineCtx)
+		defer engine.Stop()
+	}
+
 	// ── delivery：写路径端点 ──
 	snd := delivery.NewCampaignSender(campaign.NewStore(db))
 	wh := delivery.NewWriteHandler(db, snd, cfg.AWS.Region)
@@ -148,6 +163,7 @@ func Run(cfg *config.Config) error {
 		user.GET("/user/dashboard", cp.Dashboard)
 		user.GET("/user/daily-quota", cp.DailyQuota)
 		user.GET("/sending-jobs", cp.ListJobs)
+		user.POST("/sending-jobs/:batch_id/retry", cp.RetryBatch)
 		user.GET("/sending-jobs/:batch_id/metrics", cp.Metrics)
 		user.GET("/sending-jobs/:batch_id/details", cp.Details)
 		user.GET("/sending-jobs/:batch_id/progress", cp.Progress)
