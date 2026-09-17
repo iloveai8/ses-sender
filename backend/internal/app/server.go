@@ -19,7 +19,6 @@ import (
 	"ses-sender/internal/contact"
 	"ses-sender/internal/delivery"
 	"ses-sender/internal/httpx"
-	"ses-sender/internal/platform/awsx"
 	"ses-sender/internal/platform/config"
 	"ses-sender/internal/platform/database"
 	"ses-sender/internal/system"
@@ -96,12 +95,8 @@ func Run(cfg *config.Config) error {
 		user.DELETE("/contacts/:id", ct.DeleteContact)
 	}
 
-	// ── template 路由（Python include 顺序第三位；/admin 版同构复用——按当前用户隔离，毛边照抄）──
-	sesTpl, err := awsx.NewSESTemplates(context.Background(), cfg.AWS.Region)
-	if err != nil {
-		return fmt.Errorf("SES 客户端初始化: %w", err)
-	}
-	tp := template.NewHandler(template.NewStore(db), sesTpl)
+	// ── template 路由（Python include 顺序第三位；模板纯本地——不做 SES 双写，v2 清理）──
+	tp := template.NewHandler(template.NewStore(db))
 	{
 		user.GET("/user/templates", tp.List)
 		user.POST("/user/templates", tp.Create)

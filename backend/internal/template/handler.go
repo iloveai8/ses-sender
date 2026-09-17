@@ -11,17 +11,16 @@ import (
 
 	"ses-sender/internal/account"
 	"ses-sender/internal/httpx"
-	"ses-sender/internal/platform/awsx"
 )
 
 // Handler template 域 HTTP 适配层（/user/templates 与 /admin/templates 同构——按当前用户隔离，毛边照抄）
+// 注意：模板纯本地存储，不做 SES 双写（发送走内联 HTML，SES 模板无用——v2 清理）
 type Handler struct {
 	store *Store
-	ses   *awsx.SESTemplates
 }
 
-func NewHandler(store *Store, ses *awsx.SESTemplates) *Handler {
-	return &Handler{store: store, ses: ses}
+func NewHandler(store *Store) *Handler {
+	return &Handler{store: store}
 }
 
 // List GET /user/templates（admin 版同构复用）
@@ -58,15 +57,7 @@ func (h *Handler) Create(c *gin.Context) {
 	if text == "" {
 		text = " " // Python：text_body = html_body or " "
 	}
-	sesName, err := GenSesName(account.CurrentUser(c).ID)
-	if err != nil {
-		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
-		return
-	}
-	if err := h.ses.Create(c.Request.Context(), sesName, subject, html, text); err != nil {
-		writeErr(c, httpx.New(http.StatusInternalServerError, fmt.Sprintf("SES 模版创建失败: %v", err)))
-		return
-	}
+	sesName, _ := GenSesName(account.CurrentUser(c).ID) // 仅作本地唯一标识，不再同步 SES（发送走内联，SES 模板无用）
 	if _, err := h.store.Create(c.Request.Context(), account.CurrentUser(c).ID, name, sesName, subject, html, text); err != nil {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
@@ -88,10 +79,6 @@ func (h *Handler) Update(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusNotFound, "模版不存在"))
 		return
 	}
-	if err := h.ses.Update(c.Request.Context(), r.SesName, r.Subject, r.HTMLBody, r.TextBody); err != nil {
-		writeErr(c, httpx.New(http.StatusInternalServerError, fmt.Sprintf("SES 模版更新失败: %v", err)))
-		return
-	}
 	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": fmt.Sprintf("模版「%s」已更新", r.Name)})
 }
 
@@ -111,7 +98,6 @@ func (h *Handler) Delete(c *gin.Context) {
 		writeErr(c, httpx.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	_ = h.ses.Delete(c.Request.Context(), r.SesName) // best-effort
 	httpx.WriteJSON(c, http.StatusOK, gin.H{"message": fmt.Sprintf("模版「%s」已删除", r.Name)})
 }
 
